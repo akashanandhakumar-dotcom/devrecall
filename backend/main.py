@@ -2,23 +2,25 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from schemas import MemoryRequest, AskRequest
+
 from memory import (
     retain_memory,
     recall_memories,
     reflect_memory,
+    get_bank_stats,
 )
 
 
 app = FastAPI(
     title="DevRecall API",
     description="Long-term memory for AI coding assistants",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 
-# ---------------------------------------------------------
+# ============================================================
 # CORS
-# ---------------------------------------------------------
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,9 +31,9 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------
+# ============================================================
 # ROOT
-# ---------------------------------------------------------
+# ============================================================
 
 @app.get("/")
 async def root():
@@ -42,9 +44,9 @@ async def root():
     }
 
 
-# ---------------------------------------------------------
-# HEALTH CHECK
-# ---------------------------------------------------------
+# ============================================================
+# HEALTH
+# ============================================================
 
 @app.get("/health")
 async def health():
@@ -54,13 +56,15 @@ async def health():
     }
 
 
-# ---------------------------------------------------------
-# RETAIN MEMORY
-# ---------------------------------------------------------
+# ============================================================
+# RETAIN
+# ============================================================
 
 @app.post("/memory")
 async def add_memory(request: MemoryRequest):
+
     try:
+
         result = await retain_memory(
             content=request.content,
             context=request.context,
@@ -73,19 +77,22 @@ async def add_memory(request: MemoryRequest):
         }
 
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=str(e),
         )
 
 
-# ---------------------------------------------------------
-# RECALL MEMORY
-# ---------------------------------------------------------
+# ============================================================
+# RECALL
+# ============================================================
 
 @app.post("/recall")
 async def recall(request: AskRequest):
+
     try:
+
         result = await recall_memories(
             request.query
         )
@@ -97,19 +104,22 @@ async def recall(request: AskRequest):
         }
 
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=str(e),
         )
 
 
-# ---------------------------------------------------------
-# REFLECT / ASK
-# ---------------------------------------------------------
+# ============================================================
+# REFLECT
+# ============================================================
 
 @app.post("/ask")
 async def ask(request: AskRequest):
+
     try:
+
         result = await reflect_memory(
             request.query
         )
@@ -121,28 +131,30 @@ async def ask(request: AskRequest):
         }
 
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=str(e),
         )
 
 
-# ---------------------------------------------------------
+# ============================================================
 # MEMORY EXPLORER
-# ---------------------------------------------------------
+# ============================================================
 
 @app.get("/memories")
 async def get_memories():
+
     try:
 
         result = await recall_memories(
-            "project architecture decisions debugging deployment engineering preferences"
+            "project architecture decisions "
+            "debugging deployment "
+            "engineering preferences"
         )
 
         memories = []
 
-        # Hindsight recall response
-        # contains the relevant memory results.
         for memory in result.results:
 
             memories.append(
@@ -162,6 +174,31 @@ async def get_memories():
         }
 
     except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ============================================================
+# LIVE HINDSIGHT STATS
+# ============================================================
+
+@app.get("/stats")
+async def stats():
+
+    try:
+
+        result = await get_bank_stats()
+
+        return {
+            "success": True,
+            "stats": result,
+        }
+
+    except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=str(e),
